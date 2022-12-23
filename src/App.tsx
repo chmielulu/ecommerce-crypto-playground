@@ -5,19 +5,25 @@ import { DEFAULT_CURRENCY } from "./config/currencies";
 import { getCurrencyByKey } from "./utils/getCurrencyByKey";
 import { roundOutToUp } from "./utils/roundOutToUp";
 import { convertCurrency } from "./utils/convertCurrency";
-import {
-  BrowserRouter,
-  Navigate,
-  redirect,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Index from "./views";
 import Category from "./views/category";
+import { IBasketItem } from "./interfaces/basket";
+import { IProduct } from "./interfaces/product";
+import useLocalStorageState from "use-local-storage-state";
+import { Icon } from "@iconify/react";
+import Checkout from "./views/checkout";
 
 function App() {
-  const [currentCurrency, setCurrentCurrency] = useState(DEFAULT_CURRENCY);
+  const [currentCurrency, setCurrentCurrency] = useLocalStorageState(
+    "currency",
+    { defaultValue: DEFAULT_CURRENCY }
+  );
   const [scaler, setScaler] = useState<number>(1);
+  const [basketItems, setBasketItems] = useLocalStorageState<IBasketItem[]>(
+    "basketItems",
+    { defaultValue: [] }
+  );
 
   useEffect(() => {
     (async () => {
@@ -34,6 +40,57 @@ function App() {
     return (price * scaler).toFixed(8);
   };
 
+  const addBasketItem = (product: IProduct) => {
+    const itemIndex = basketItems.findIndex(
+      (item) => item.product._id === product._id
+    );
+
+    if (itemIndex !== -1) {
+      let newBasketItems = basketItems;
+      newBasketItems[itemIndex].count += 1;
+      setBasketItems(newBasketItems);
+      return true;
+    }
+
+    setBasketItems((prevState) => [...prevState, { product, count: 1 }]);
+    return true;
+  };
+
+  const removeBasketItem = (productId: string) => {
+    const itemIndex = basketItems.findIndex(
+      (item) => item.product._id === productId
+    );
+
+    if (itemIndex === -1) {
+      return false;
+    }
+
+    setBasketItems(
+      basketItems.filter((item) => item.product._id !== productId)
+    );
+
+    return true;
+  };
+
+  const changeBasketItemCount = (productId: string, count: number) => {
+    const itemIndex = basketItems.findIndex(
+      (item) => item.product._id === productId
+    );
+
+    if (itemIndex === -1) {
+      return false;
+    }
+
+    let newBasketItems = basketItems;
+    newBasketItems[itemIndex].count += count;
+    setBasketItems(newBasketItems);
+    return true;
+  };
+
+  const clearBasket = () => {
+    setBasketItems([]);
+  };
+
   return (
     <BrowserRouter>
       <MainContextProvider
@@ -41,14 +98,30 @@ function App() {
           currentCurrency,
           calculatePrice,
           changeCurrentCurrency: setCurrentCurrency,
+          basket: {
+            items: basketItems,
+            addItem: addBasketItem,
+            removeItem: removeBasketItem,
+            changeCount: changeBasketItemCount,
+            totalPrice: basketItems.reduce(
+              (prev, curr) => prev + curr.product.price * curr.count,
+              0
+            ),
+            totalCount: basketItems.reduce(
+              (prev, curr) => prev + curr.count,
+              0
+            ),
+            clear: clearBasket,
+          },
         }}
       >
         <Navigation />
 
-        <div className="mt-4 p-10">
+        <div className="mt-4 p-10 mb-20">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/category/:category" element={<Category />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

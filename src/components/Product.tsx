@@ -8,12 +8,13 @@ function Product({
   description,
   price,
   picture,
+  onButtonClick,
 }: Props): React.ReactElement {
   const [isHovering, setHovering] = useState(false);
   const { calculatePrice, currentCurrency } = useMainContext();
 
   return (
-    <article className="flex gap-10 items-center xl:w-1/2">
+    <article className="flex gap-10 items-center">
       <div className="w-60 h-60 rounded-xl overflow-hidden">
         <img
           className={classNames(
@@ -41,6 +42,7 @@ function Product({
             className="ml-auto xl:mr-10 w-10 h-10 rounded-xl bg-violet-400 font-bold text-white cursor-pointer hover:bg-violet-500 focus:outline-none focus:ring"
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
+            onClick={onButtonClick}
           >
             +
           </button>
@@ -55,6 +57,7 @@ interface Props {
   description: string;
   price: number;
   picture: string;
+  onButtonClick: () => void;
 }
 
 export default Product;
